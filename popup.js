@@ -2,6 +2,85 @@ let currentMeta = null;
 let currentRows = null;
 let copyStatusTimer = null;
 
+// ---- Site management ----
+
+async function initSiteControl() {
+    const siteToggleBtn = document.getElementById('siteToggleBtn');
+    const currentDomainSpan = document.getElementById('currentDomain');
+
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
+
+    if (!currentTab || !currentTab.url) {
+        currentDomainSpan.textContent = '无法获取当前页面';
+        siteToggleBtn.disabled = true;
+        return;
+    }
+
+    let url;
+    try {
+        url = new URL(currentTab.url);
+    } catch (e) {
+        currentDomainSpan.textContent = '无法解析 URL';
+        siteToggleBtn.disabled = true;
+        return;
+    }
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        currentDomainSpan.textContent = '当前页面不支持';
+        siteToggleBtn.disabled = true;
+        return;
+    }
+
+    const domainPattern = url.origin + '/*';
+    currentDomainSpan.textContent = url.hostname;
+
+    const response = await chrome.runtime.sendMessage({ type: 'WS_DB_GET_WHITELIST' });
+    const whitelist = response?.whitelist || [];
+    const isSiteEnabled = whitelist.includes(domainPattern);
+
+    updateSiteToggleBtn(siteToggleBtn, isSiteEnabled);
+    siteToggleBtn.disabled = false;
+    siteToggleBtn.dataset.domain = domainPattern;
+    siteToggleBtn.dataset.tabId = currentTab.id;
+
+    siteToggleBtn.addEventListener('click', async () => {
+        siteToggleBtn.disabled = true;
+        const domain = siteToggleBtn.dataset.domain;
+        const tabId = parseInt(siteToggleBtn.dataset.tabId);
+
+        if (siteToggleBtn.dataset.enabled === 'true') {
+            await chrome.runtime.sendMessage({ type: 'WS_DB_REMOVE_DOMAIN', domain });
+            updateSiteToggleBtn(siteToggleBtn, false);
+        } else {
+            await chrome.runtime.sendMessage({ type: 'WS_DB_ADD_DOMAIN', domain });
+            updateSiteToggleBtn(siteToggleBtn, true);
+
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId },
+                    files: ['content.js'],
+                    injectImmediately: true
+                });
+            } catch (e) {
+                console.error('立即注入失败:', e);
+            }
+        }
+        siteToggleBtn.disabled = false;
+    });
+}
+
+function updateSiteToggleBtn(btn, isEnabled) {
+    btn.dataset.enabled = isEnabled ? 'true' : 'false';
+    if (isEnabled) {
+        btn.textContent = '禁用当前网站';
+        btn.classList.remove('disabled-site');
+    } else {
+        btn.textContent = '启用当前网站';
+        btn.classList.add('disabled-site');
+    }
+}
+
 async function loadData() {
 
     const result = await chrome.storage.local.get(['latestResult', 'enabled']);
@@ -339,4 +418,5 @@ function updateEnableLabel(enabled) {
     document.getElementById('enableLabel').textContent = enabled ? '已启用' : '已禁用';
 }
 
+initSiteControl();
 loadData();

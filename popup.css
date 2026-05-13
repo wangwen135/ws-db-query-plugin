@@ -207,3 +207,52 @@ tr:nth-child(even) {
     font-size: 13px;
     line-height: 1.8;
 }
+
+/* Site control section */
+
+.site-control {
+    padding: 10px 12px;
+    background: #f0f4f8;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.current-domain {
+    font-size: 13px;
+    color: #333;
+    word-break: break-all;
+}
+
+.site-toggle-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid #4CAF50;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+.site-toggle-btn:hover:not(:disabled) {
+    background-color: #45a049;
+}
+
+.site-toggle-btn.disabled-site {
+    background-color: #fff;
+    color: #666;
+    border-color: #ddd;
+}
+
+.site-toggle-btn.disabled-site:hover:not(:disabled) {
+    background-color: #f5f5f5;
+}
+
+.site-toggle-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
