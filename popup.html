@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>WS DB Query Viewer</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<div class="toolbar">
+    <label class="switch">
+        <input type="checkbox" id="enableToggle">
+        <span class="slider"></span>
+    </label>
+    <span id="enableLabel">已启用</span>
+    <button id="refreshBtn">刷新</button>
+    <button id="clearBtn">清空</button>
+    <span class="toolbar-tip">点击标题复制整列 · 点击序号复制整行 · 双击单元格复制</span>
+</div>
+
+<div id="sqlInfo"></div>
+
+<div id="tableContainer"></div>
+
+<div class="footer-toolbar">
+    <div id="copyStatus" class="copy-status"></div>
+    <div class="button-group">
+        <button id="copyJsonBtn" disabled>复制 JSON</button>
+        <button id="copyCsvBtn" disabled>复制 CSV</button>
+        <button id="copyMdBtn" disabled>复制 Markdown</button>
+        <div class="right">
+            <button id="exportCsvBtn" disabled>导出 CSV</button>
+            <button id="exportXlsxBtn" disabled>导出 Excel</button>
+        </div>
+    </div>
+</div>
+
+<script src="xlsx.full.min.js"></script>
+<script src="popup.js"></script>
+
+</body>
+</html>
