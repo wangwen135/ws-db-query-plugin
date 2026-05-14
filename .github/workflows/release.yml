@@ -5,11 +5,9 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g. v1.0.1)'
-        required: true
-        default: 'v1.0.1'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -18,19 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Package extension
         run: |
           mkdir -p dist
-          zip -r dist/ws-db-query-plugin-${{ steps.version.outputs.version }}.zip \
+          zip -r dist/ws-db-query-plugin-${{ github.ref_name }}.zip \
             manifest.json \
             background.js \
             content.js \
@@ -38,14 +27,12 @@ jobs:
             popup.html \
             popup.css \
             popup.js \
-            xlsx.full.min.js \
-            -x "*.git*"
+            xlsx.full.min.js
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: WS DB Query Plugin ${{ steps.version.outputs.version }}
+          name: WS DB Query Plugin ${{ github.ref_name }}
           body: |
             ## 安装方式
             1. 下载 zip 文件并解压
@@ -60,7 +47,3 @@ jobs:
             - 支持复制 JSON / CSV / Markdown
             - 按站点控制启用/禁用
           files: dist/*.zip
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
