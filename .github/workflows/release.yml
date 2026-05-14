@@ -1,0 +1,66 @@
+name: Release Chrome Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.1)'
+        required: true
+        default: 'v1.0.1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package extension
+        run: |
+          mkdir -p dist
+          zip -r dist/ws-db-query-plugin-${{ steps.version.outputs.version }}.zip \
+            manifest.json \
+            background.js \
+            content.js \
+            inject.js \
+            popup.html \
+            popup.css \
+            popup.js \
+            xlsx.full.min.js \
+            -x "*.git*"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: WS DB Query Plugin ${{ steps.version.outputs.version }}
+          body: |
+            ## 安装方式
+            1. 下载 zip 文件并解压
+            2. 打开 Chrome 扩展页面 `chrome://extensions`
+            3. 开启右上角「开发者模式」
+            4. 点击「加载已解压的扩展程序」，选择解压后的文件夹
+
+            ## 功能
+            - 按 STOMP 协议拦截 WebSocket 数据库查询结果
+            - 表格展示查询结果
+            - 支持导出 CSV / Excel
+            - 支持复制 JSON / CSV / Markdown
+            - 按站点控制启用/禁用
+          files: dist/*.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
