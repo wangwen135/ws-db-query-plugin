@@ -11,73 +11,45 @@ body {
 }
 
 .toolbar {
-    padding: 10px 12px 0;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-shrink: 0;
 }
 
 .toolbar-tip {
-    margin-left: auto;
     font-size: 11px;
     color: #aaa;
-    white-space: nowrap;
 }
 
-.switch {
-    position: relative;
-    width: 40px;
-    height: 20px;
+/* 站点控制 - 内联样式，靠右 */
+.site-control-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
 }
 
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: 0.3s;
-    border-radius: 20px;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-}
-
-input:checked + .slider {
-    background-color: #4CAF50;
-}
-
-input:checked + .slider:before {
-    transform: translateX(20px);
-}
-
-#enableLabel {
+.current-domain {
     font-size: 12px;
     color: #666;
 }
 
+/* 通用按钮样式 */
 button {
-    padding: 6px 12px;
-    margin-right: 8px;
+    padding: 6px 14px;
     cursor: pointer;
+    font-size: 13px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    color: #333;
+    border-radius: 3px;
+    transition: background-color 0.15s;
+}
+
+button:hover:not(:disabled) {
+    background-color: #f0f0f0;
 }
 
 button:disabled {
@@ -85,11 +57,25 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* 禁用当前网站按钮 - 红色 */
+.site-toggle-btn {
+    border-color: #e0e0e0;
+    color: #d9534f;
+}
+
+.site-toggle-btn:hover:not(:disabled) {
+    background-color: #fff5f5;
+    border-color: #d9534f;
+}
+
 #sqlInfo {
-    padding: 8px 12px 0;
+    padding: 6px 12px;
     font-size: 12px;
     color: #666;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 #tableContainer {
@@ -97,7 +83,7 @@ button:disabled {
     flex: 1;
     min-height: 0;
     min-width: 0;
-    margin: 8px 12px;
+    margin: 6px 12px;
     background: white;
     border: 1px solid #ddd;
 }
@@ -208,51 +194,60 @@ tr:nth-child(even) {
     line-height: 1.8;
 }
 
-/* Site control section */
+/* Site overlay - disabled site */
 
-.site-control {
-    padding: 10px 12px;
-    background: #f0f4f8;
-    border-bottom: 1px solid #ddd;
+.site-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.98);
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
+    justify-content: center;
+    z-index: 9999;
 }
 
-.current-domain {
-    font-size: 13px;
+.site-overlay.hidden {
+    display: none;
+}
+
+.overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+}
+
+.overlay-domain {
+    font-size: 18px;
     color: #333;
+    margin-bottom: 24px;
     word-break: break-all;
+    font-weight: 500;
 }
 
-.site-toggle-btn {
-    padding: 6px 14px;
-    font-size: 12px;
+.overlay-enable-btn {
+    padding: 14px 28px;
+    font-size: 16px;
     cursor: pointer;
-    border: 1px solid #4CAF50;
+    border: 2px solid #4CAF50;
     background-color: #4CAF50;
     color: white;
-    border-radius: 4px;
-    white-space: nowrap;
-    transition: background-color 0.2s;
+    border-radius: 8px;
+    transition: background-color 0.2s, transform 0.1s;
+    margin: 0;
 }
 
-.site-toggle-btn:hover:not(:disabled) {
+.overlay-enable-btn:hover:not(:disabled) {
     background-color: #45a049;
+    transform: translateY(-1px);
 }
 
-.site-toggle-btn.disabled-site {
-    background-color: #fff;
-    color: #666;
-    border-color: #ddd;
-}
-
-.site-toggle-btn.disabled-site:hover:not(:disabled) {
-    background-color: #f5f5f5;
-}
-
-.site-toggle-btn:disabled {
+.overlay-enable-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }

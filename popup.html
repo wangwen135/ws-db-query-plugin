@@ -7,23 +7,26 @@
 </head>
 <body>
 
-<div id="siteControl" class="site-control">
-    <span id="currentDomain" class="current-domain">检测中...</span>
-    <button id="siteToggleBtn" class="site-toggle-btn" disabled>启用当前网站</button>
+<!-- 遮罩层：未启用站点时显示 -->
+<div id="siteOverlay" class="site-overlay">
+    <div class="overlay-content">
+        <div id="overlayDomain" class="overlay-domain">检测中...</div>
+        <button id="overlayEnableBtn" class="overlay-enable-btn" disabled>在当前网站启用插件</button>
+    </div>
 </div>
 
 <div class="toolbar">
-    <label class="switch">
-        <input type="checkbox" id="enableToggle">
-        <span class="slider"></span>
-    </label>
-    <span id="enableLabel">已启用</span>
-    <button id="refreshBtn">刷新</button>
     <button id="clearBtn">清空</button>
-    <span class="toolbar-tip">点击标题复制整列 · 点击序号复制整行 · 双击单元格复制</span>
+    <div id="siteControl" class="site-control-inline" style="display: none;">
+        <span id="currentDomain" class="current-domain"></span>
+        <button id="siteToggleBtn" class="site-toggle-btn">禁用</button>
+    </div>
 </div>
 
-<div id="sqlInfo"></div>
+<div id="sqlInfo">
+    <span id="sqlInfoContent"></span>
+    <span class="toolbar-tip">点击标题/序号/单元格进行复制</span>
+</div>
 
 <div id="tableContainer"></div>
 

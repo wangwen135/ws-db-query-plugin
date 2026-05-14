@@ -1,7 +1,5 @@
 (function () {
 
-    let isEnabled = true;
-
     function log(msg) {
         console.log('[WS-DB] ' + msg);
         try {
@@ -10,13 +8,6 @@
     }
 
     log('inject.js 已加载，WebSocket hook 开始');
-
-    window.addEventListener('message', (event) => {
-        if (event.source !== window && event.data.type === 'WS_DB_QUERY_TOGGLE') {
-            isEnabled = event.data.enabled;
-            log('inject.js 收到状态切换: ' + (isEnabled ? '启用' : '禁用'));
-        }
-    });
 
     function unpackSockJS(text) {
         if (text.startsWith('a[')) {
@@ -40,8 +31,6 @@
         const ws = new OldWebSocket(...args);
 
         ws.addEventListener('message', (event) => {
-
-            if (!isEnabled) return;
 
             try {
 

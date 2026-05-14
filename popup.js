@@ -5,15 +5,18 @@ let copyStatusTimer = null;
 // ---- Site management ----
 
 async function initSiteControl() {
-    const siteToggleBtn = document.getElementById('siteToggleBtn');
+    const overlay = document.getElementById('siteOverlay');
+    const overlayDomain = document.getElementById('overlayDomain');
+    const overlayEnableBtn = document.getElementById('overlayEnableBtn');
+    const siteControl = document.getElementById('siteControl');
     const currentDomainSpan = document.getElementById('currentDomain');
+    const siteToggleBtn = document.getElementById('siteToggleBtn');
 
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const currentTab = tabs[0];
 
     if (!currentTab || !currentTab.url) {
-        currentDomainSpan.textContent = '无法获取当前页面';
-        siteToggleBtn.disabled = true;
+        overlayDomain.textContent = '无法获取当前页面';
         return;
     }
 
@@ -21,97 +24,101 @@ async function initSiteControl() {
     try {
         url = new URL(currentTab.url);
     } catch (e) {
-        currentDomainSpan.textContent = '无法解析 URL';
-        siteToggleBtn.disabled = true;
+        overlayDomain.textContent = '无法解析 URL';
         return;
     }
 
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        currentDomainSpan.textContent = '当前页面不支持';
-        siteToggleBtn.disabled = true;
+        overlayDomain.textContent = '当前页面不支持';
         return;
     }
 
     const domainPattern = url.origin + '/*';
-    currentDomainSpan.textContent = url.hostname;
+    const hostname = url.hostname;
+
+    overlayDomain.textContent = hostname;
+    currentDomainSpan.textContent = hostname;
 
     const response = await chrome.runtime.sendMessage({ type: 'WS_DB_GET_WHITELIST' });
     const whitelist = response?.whitelist || [];
     const isSiteEnabled = whitelist.includes(domainPattern);
 
-    updateSiteToggleBtn(siteToggleBtn, isSiteEnabled);
-    siteToggleBtn.disabled = false;
-    siteToggleBtn.dataset.domain = domainPattern;
-    siteToggleBtn.dataset.tabId = currentTab.id;
+    // 控制遮罩层和站点控制条的显示
+    if (isSiteEnabled) {
+        overlay.classList.add('hidden');
+        siteControl.style.display = 'flex';
+    } else {
+        overlay.classList.remove('hidden');
+        siteControl.style.display = 'none';
+    }
 
-    siteToggleBtn.addEventListener('click', async () => {
+    // 遮罩层按钮事件
+    overlayEnableBtn.removeAttribute('disabled');
+    overlayEnableBtn.dataset.domain = domainPattern;
+    overlayEnableBtn.dataset.tabId = String(currentTab.id);
+
+    overlayEnableBtn.onclick = async function() {
+        overlayEnableBtn.disabled = true;
+        const domain = overlayEnableBtn.dataset.domain;
+        const tabId = parseInt(overlayEnableBtn.dataset.tabId);
+
+        await chrome.runtime.sendMessage({ type: 'WS_DB_ADD_DOMAIN', domain });
+
+        overlay.classList.add('hidden');
+        siteControl.style.display = 'flex';
+
+        try {
+            await chrome.scripting.executeScript({
+                target: { tabId },
+                files: ['content.js'],
+                injectImmediately: true
+            });
+        } catch (e) {
+            console.error('[WS-DB Popup] 立即注入失败:', e);
+        }
+
+        overlayEnableBtn.removeAttribute('disabled');
+        loadData();
+    };
+
+    // 站点控制条按钮事件（禁用当前网站）
+    siteToggleBtn.removeAttribute('disabled');
+    siteToggleBtn.dataset.domain = domainPattern;
+
+    siteToggleBtn.onclick = async function() {
         siteToggleBtn.disabled = true;
         const domain = siteToggleBtn.dataset.domain;
-        const tabId = parseInt(siteToggleBtn.dataset.tabId);
 
-        if (siteToggleBtn.dataset.enabled === 'true') {
-            await chrome.runtime.sendMessage({ type: 'WS_DB_REMOVE_DOMAIN', domain });
-            updateSiteToggleBtn(siteToggleBtn, false);
-        } else {
-            await chrome.runtime.sendMessage({ type: 'WS_DB_ADD_DOMAIN', domain });
-            updateSiteToggleBtn(siteToggleBtn, true);
+        await chrome.runtime.sendMessage({ type: 'WS_DB_REMOVE_DOMAIN', domain });
 
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId },
-                    files: ['content.js'],
-                    injectImmediately: true
-                });
-            } catch (e) {
-                console.error('立即注入失败:', e);
-            }
-        }
-        siteToggleBtn.disabled = false;
-    });
-}
+        overlay.classList.remove('hidden');
+        siteControl.style.display = 'none';
+        overlayDomain.textContent = hostname;
 
-function updateSiteToggleBtn(btn, isEnabled) {
-    btn.dataset.enabled = isEnabled ? 'true' : 'false';
-    if (isEnabled) {
-        btn.textContent = '禁用当前网站';
-        btn.classList.remove('disabled-site');
-    } else {
-        btn.textContent = '启用当前网站';
-        btn.classList.add('disabled-site');
-    }
+        siteToggleBtn.removeAttribute('disabled');
+    };
 }
 
 async function loadData() {
 
-    const result = await chrome.storage.local.get(['latestResult', 'enabled']);
-
-    const enabled = result.enabled !== false;
-
-    document.getElementById('enableToggle').checked = enabled;
-    updateEnableLabel(enabled);
-
+    const result = await chrome.storage.local.get('latestResult');
     const data = result.latestResult;
 
     if (!data) {
-
-        document.getElementById('sqlInfo').innerHTML = '';
+        document.getElementById('sqlInfoContent').innerHTML = '';
         resetToolbar();
         renderLogs();
-
         return;
     }
 
     if (!data.data || !Array.isArray(data.data.executeResultList) || data.data.executeResultList.length === 0) {
-
-        document.getElementById('sqlInfo').innerHTML = '';
+        document.getElementById('sqlInfoContent').innerHTML = '';
         resetToolbar();
         renderLogs();
-
         return;
     }
 
     const executeResult = data.data.executeResultList[0];
-
     const meta = executeResult.meta;
     const rows = executeResult.data;
 
@@ -130,16 +137,14 @@ function renderInfo(executeResult) {
     const rowCount = Array.isArray(executeResult.data) ? executeResult.data.length : 0;
 
     const html = `
-        <div>
-            <b>数据库类型：</b>${dbType}
-            &nbsp;&nbsp;
-            <b>耗时：</b>${elapsedTime} ms
-            &nbsp;&nbsp;
-            <b>返回行数：</b>${rowCount}
-        </div>
+        <b>数据库类型：</b>${dbType}
+        &nbsp;&nbsp;
+        <b>耗时：</b>${elapsedTime} ms
+        &nbsp;&nbsp;
+        <b>返回行数：</b>${rowCount}
     `;
 
-    document.getElementById('sqlInfo').innerHTML = html;
+    document.getElementById('sqlInfoContent').innerHTML = html;
 }
 
 function escapeHtml(str) {
@@ -376,27 +381,11 @@ function resetToolbar() {
 
 // ---- 事件绑定 ----
 
-document.getElementById('refreshBtn').addEventListener('click', loadData);
-
 document.getElementById('clearBtn').addEventListener('click', async () => {
     await chrome.storage.local.remove('latestResult');
-    document.getElementById('sqlInfo').innerHTML = '';
+    document.getElementById('sqlInfoContent').innerHTML = '';
     resetToolbar();
     renderLogs();
-});
-
-document.getElementById('enableToggle').addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    await chrome.storage.local.set({ enabled });
-    updateEnableLabel(enabled);
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]?.id) {
-            chrome.tabs.sendMessage(tabs[0].id, {
-                type: 'WS_DB_QUERY_TOGGLE',
-                enabled
-            });
-        }
-    });
 });
 
 document.getElementById('copyJsonBtn').addEventListener('click', () => {
@@ -413,10 +402,6 @@ document.getElementById('copyMdBtn').addEventListener('click', () => {
 
 document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
 document.getElementById('exportXlsxBtn').addEventListener('click', exportXlsx);
-
-function updateEnableLabel(enabled) {
-    document.getElementById('enableLabel').textContent = enabled ? '已启用' : '已禁用';
-}
 
 initSiteControl();
 loadData();
